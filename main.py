@@ -1,85 +1,49 @@
+```python
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import urlparse, parse_qs
 from datetime import datetime, timezone
 import os
 
 
-class RequestHandler(BaseHTTPRequestHandler):
+class Handler(BaseHTTPRequestHandler):
 
-    def log_request_details(self, body=None):
-        timestamp = datetime.now(timezone.utc).isoformat()
+    def do_GET(self):
+        parsed = urlparse(self.path)
+        params = parse_qs(parsed.query)
 
-        print("\n" + "=" * 60)
-        print(f"[{timestamp}] HTTP REQUEST")
-        print(f"IP      : {self.client_address[0]}")
-        print(f"Method  : {self.command}")
-        print(f"Path    : {self.path}")
-        print(f"Protocol: {self.request_version}")
+        output = params.get("output", [None])[0]
 
-        print("Headers:")
-        for name, value in self.headers.items():
-            print(f"  {name}: {value}")
+        timestamp = datetime.now(timezone.utc).strftime(
+            "%Y-%m-%d %H:%M:%S UTC"
+        )
 
-        if body:
-            print(f"Body    : {body!r}")
-
-        print("=" * 60, flush=True)
-
-    def handle_request(self):
-        body = None
-
-        content_length = self.headers.get("Content-Length")
-
-        if content_length:
-            try:
-                length = int(content_length)
-                if length > 0:
-                    body = self.rfile.read(length)
-            except (ValueError, OverflowError):
-                pass
-
-        self.log_request_details(body)
+        if output is not None:
+            print(f"[{timestamp}] OUTPUT: {output}", flush=True)
+        else:
+            print(
+                f"[{timestamp}] REQUEST: {self.path}",
+                flush=True
+            )
 
         self.send_response(200)
         self.send_header("Content-Type", "text/plain")
         self.end_headers()
-        self.wfile.write(b"Request received.\n")
 
-    def do_GET(self):
-        self.handle_request()
-
-    def do_POST(self):
-        self.handle_request()
-
-    def do_PUT(self):
-        self.handle_request()
-
-    def do_PATCH(self):
-        self.handle_request()
-
-    def do_DELETE(self):
-        self.handle_request()
-
-    def do_HEAD(self):
-        self.log_request_details()
-
-        self.send_response(200)
-        self.end_headers()
+        self.wfile.write(b"OK\n")
 
     def log_message(self, format, *args):
-        # Disable BaseHTTPRequestHandler's default duplicate logging
+        # Prevent duplicate default HTTP logging
         pass
 
 
-host = "0.0.0.0"
 port = int(os.environ.get("PORT", 8080))
 
-server = HTTPServer((host, port), RequestHandler)
+server = HTTPServer(("0.0.0.0", port), Handler)
 
-print(f"[*] Server listening on 0.0.0.0:{port}", flush=True)
+print(f"[*] Listening on port {port}", flush=True)
 
 try:
     server.serve_forever()
 except KeyboardInterrupt:
-    pass
-finally:
     server.server_close()
+```
