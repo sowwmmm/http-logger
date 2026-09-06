@@ -1,4 +1,3 @@
-```python
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import urlparse, parse_qs
 from datetime import datetime, timezone
@@ -46,4 +45,3 @@ try:
     server.serve_forever()
 except KeyboardInterrupt:
     server.server_close()
-```
